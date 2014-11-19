@@ -29,6 +29,7 @@ class LVService():
                 self.lv.confirmScheduleRetrieval()
                 self.highestBid=self.lv.getHighestBid(self.schedule)
                 self.audiofile=os.path.basename(self.highestBid['filename'])
+                self.volume = int(self.schedule['schedule'][0]['avolume'])
                 print self.highestBid
                 print self.audiofile
                 return True
@@ -45,7 +46,7 @@ class LVService():
         if self.player.input(channel):
             print "tilt switch callback"
             self.player.toggleRedLed()
-            self.player.playMp3(self.audiofile)
+            self.player.playMp3(self.audiofile, volume=self.volume)
 
     def extSwitchCallback(self, channel):
         """

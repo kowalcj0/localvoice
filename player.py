@@ -79,10 +79,12 @@ class Player():
     def input(self, channel):
         return GPIO.input(channel)
 
-    def playMp3(self, filename):
+    def playMp3(self, filename, volume=40):
         try:
            with open('%s/audio/%s' % (self.pwd, filename)): 
-               os.system("mpg321 -q -g 40 %s/audio/%s" % (self.pwd,filename))
+               os.system("mpg321 -q -g {} {}/audio/{}".format(volume,
+                                                              self.pwd,
+                                                              filename))
         except IOError:
             print "Couldn't find audio file: ./audio/%s" % filename
 
