@@ -9,21 +9,32 @@ import sys
 class Player():
 
     def __init__(self,
-                EXT_SWITCH_CALLBACK,
+                IR_SWITCH_CALLBACK,
+                INTERNAL_SWITCH_CALLBACK,
+                EXTERNAL_SWITCH_CALLBACK,
                 TILT_SWITCH_CALLBACK,
+                PIN_IR_SWITCH=8,
+                PIN_INTERNAL_SWITCH=25,
+                PIN_EXTERNAL_SWITCH=13,
+                PIN_TILT_SWITCH=11,
                 PIN_LED_GREEN=18,
-                PIN_LED_RED=16,
-                PIN_TILT_SWITCH=8,
-                PIN_EXT_SWITCH=13):
+                PIN_LED_RED=16):
         """
         Sets the Player with default pinout if not provided
         """
-        self.PIN_LED_GREEN=PIN_LED_GREEN
-        self.PIN_LED_RED=PIN_LED_RED
-        self.PIN_TILT_SWITCH=PIN_TILT_SWITCH
-        self.PIN_EXT_SWITCH=PIN_EXT_SWITCH
-        self.TILT_SWITCH_CALLBACK=TILT_SWITCH_CALLBACK
-        self.EXT_SWITCH_CALLBACK=EXT_SWITCH_CALLBACK
+        self.IR_SWITCH_CALLBACK = IR_SWITCH_CALLBACK
+        self.INTERNAL_SWITCH_CALLBACK = INTERNAL_SWITCH_CALLBACK
+        self.EXTERNAL_SWITCH_CALLBACK = EXTERNAL_SWITCH_CALLBACK
+        self.TILT_SWITCH_CALLBACK = TILT_SWITCH_CALLBACK
+
+        self.PIN_IR_SWITCH = PIN_IR_SWITCH
+        self.PIN_INTERNAL_SWITCH = PIN_INTERNAL_SWITCH
+        self.PIN_EXTERNAL_SWITCH = PIN_EXTERNAL_SWITCH
+        self.PIN_TILT_SWITCH = PIN_TILT_SWITCH
+        
+        self.PIN_LED_GREEN = PIN_LED_GREEN
+        self.PIN_LED_RED = PIN_LED_RED
+
         self.pwd=os.path.dirname(__file__)
 
 

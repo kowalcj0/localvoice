@@ -10,13 +10,15 @@ class LVService():
     def __init__(self):
         self.lv=LV()
         self.lv.adminResetToNull()
-        if self.refreshSchedule():
+        if self.refresh_schedule():
             # setup the player using custom callback functions
-            self.player=Player(TILT_SWITCH_CALLBACK=self.tiltSwitchCallback,
-                               EXT_SWITCH_CALLBACK=self.extSwitchCallback)
+            self.player=Player(IR_SWITCH_CALLBACK=self.ir_switch_callback,
+                               INTERNAL_SWITCH_CALLBACK=self.internal_switch_callback,
+                               EXTERNAL_SWITCH_CALLBACK=self.external_switch_callback,
+                               TILT_SWITCH_CALLBACK=self.tilt_switch_callback)
             self.player.setup()
 
-    def refreshSchedule(self):
+    def refresh_schedule(self):
         """
         Gets the current schedule, then 
         """
@@ -34,11 +36,34 @@ class LVService():
                 print self.audiofile
                 return True
         else:
+            import ipdb; ipdb.set_trace()
             print "I've got nothing to do because I've received an empty schedule!"
             return False
 
 
-    def tiltSwitchCallback(self, channel):
+    def ir_switch_callback(self, channel):
+        """
+        Custom callback method passed to the Player. 
+        Should be executed when IR event is detected
+        """
+        if self.player.input(channel):
+            print "IR switch callback"
+            self.player.toggleRedLed()
+            self.player.playMp3(self.audiofile, volume=self.volume)
+
+
+    def internal_switch_callback(self, channel):
+        """
+        Custom callback method passed to the Player. 
+        Should be executed when an event from internal switch is detected
+        """
+        if self.player.input(channel):
+            print "internal ext switch callback"
+            self.player.toggleGreenLed()
+            self.refreshSchedule()
+
+
+    def tilt_switch_callback(self, channel):
         """
         Custom callback method passed to the Player. 
         Should be executed when tilt event is detected
@@ -48,7 +73,8 @@ class LVService():
             self.player.toggleRedLed()
             self.player.playMp3(self.audiofile, volume=self.volume)
 
-    def extSwitchCallback(self, channel):
+
+    def external_switch_callback(self, channel):
         """
         Custom callback method passed to the Player. 
         Should be executed when an event from external switch is detected
