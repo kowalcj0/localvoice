@@ -9,6 +9,16 @@ import datetime
 class LV:
     """
     Local Voice main class
+
+    List of advert triggerring types:
+    Movement = 1
+    NFC = 2
+    IR = 3
+    Magnetic = 4
+    PushToCross = 5
+    Button2 = 6
+    Broadcast = 7
+    Emergency = 8
     """
 
     def __init__(self,
@@ -112,6 +122,19 @@ class LV:
                     return ad
         else:
            return ()
+
+    
+    def get_adverts(self, json, type):
+        """
+        Return adverts of given type, and return None if no advert was found.
+        :param type: an type of the sensor (should be an int in quoutes)
+        """
+        print "'{}'".format(type)
+        result = []
+        for ad in filter(lambda x: 'stype' in x and x['stype'] == type,
+                         json['schedule']):
+            result.append(ad)
+        return result
         
 
     def adminResetToNull(self):

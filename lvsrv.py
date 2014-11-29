@@ -3,6 +3,10 @@
 from lv import LV
 from player import Player
 import os
+import signal
+import subprocess
+from pprint import pprint as pp
+import timeit
 
 
 class LVService():
@@ -10,6 +14,11 @@ class LVService():
     def __init__(self):
         self.lv=LV()
         self.lv.adminResetToNull()
+        # define for how many seconds movement trigger should do nothing
+        self.movement_playback_timer = timeit.timeit()
+        self.movement_playback_timer_threshold = 35
+        self.player_proc = None
+
         if self.refresh_schedule():
             # setup the player using custom callback functions
             self.player=Player(IR_SWITCH_CALLBACK=self.ir_switch_callback,
@@ -18,6 +27,7 @@ class LVService():
                                TILT_SWITCH_CALLBACK=self.tilt_switch_callback)
             self.player.setup()
 
+
     def refresh_schedule(self):
         """
         Gets the current schedule, then 
@@ -25,18 +35,24 @@ class LVService():
         self.schedule=self.lv.getSchedule()
         if self.schedule:
             print "Got a schedule containing: %d item(s)" % len(self.schedule['schedule'])
+            print self.schedule['schedule']
             self.urls=self.lv.getDlUrls(self.schedule)
+
             #print "List of audio URLs to download \n %s \n" % u
             if self.lv.dlAllFiles(self.urls):
                 self.lv.confirmScheduleRetrieval()
-                self.highestBid=self.lv.getHighestBid(self.schedule)
-                self.audiofile=os.path.basename(self.highestBid['filename'])
-                self.volume = int(self.schedule['schedule'][0]['avolume'])
-                print self.highestBid
-                print self.audiofile
+
+                self.audio_movement = self.lv.get_adverts(self.schedule, u'5')
+                self.audio_nfc = self.lv.get_adverts(self.schedule, u'2')
+                self.audio_ir = self.lv.get_adverts(self.schedule, u'3')
+                self.audio_magnetic = self.lv.get_adverts(self.schedule, u'4')
+                self.audio_pushtocross = self.lv.get_adverts(self.schedule, u'5')
+                self.audio_internal = self.lv.get_adverts(self.schedule, u'6')
+                self.audio_broadcast = self.lv.get_adverts(self.schedule, u'7')
+                self.audio_emergency = self.lv.get_adverts(self.schedule, u'8')
+
                 return True
         else:
-            import ipdb; ipdb.set_trace()
             print "I've got nothing to do because I've received an empty schedule!"
             return False
 
@@ -48,8 +64,45 @@ class LVService():
         """
         if self.player.input(channel):
             print "IR switch callback"
-            self.player.toggleRedLed()
-            self.player.playMp3(self.audiofile, volume=self.volume)
+            if self.audio_ir:
+                current_timer = timeit.timeit()
+                if ((self.movement_playback_timer - current_timer)*1000 <
+                    self.movement_playback_timer_threshold):
+                    audio = os.path.basename(self.audio_ir[0]['filename'])
+                    vol = self.audio_ir[0]['avolume']
+                    self.player.toggleRedLed()
+                    if self.player_proc:
+                        print "IR: Already playing audio"
+                    else:
+                        self.movement_playback_timer = timeit.timeit()
+                        self.player_proc = self.player.playMp3(audio, vol)
+                else:
+                    print "IR: sensor was triggered to quickly"
+                    if ((self.movement_playback_timer - current_timer)*1000 <
+                        self.movement_playback_timer_threshold):
+                        print "Resetting the IR timer"
+                        self.movement_playback_timer = timeit.timeit()
+            else:
+                print "No ad to play for IR switch"
+
+
+    def magnetic_switch_callback(self, channel):
+        """
+        Custom callback method passed to the Player. 
+        Should be executed when IR event is detected
+        """
+        if self.player.input(channel):
+            print "Magnetic switch callback"
+            if self.audio_magnetic:
+                audio = os.path.basename(self.audio_magnetic[0]['filename'])
+                vol = self.audio_magnetic[0]['avolume']
+                self.player.toggleRedLed()
+                if self.player_proc:
+                    print "Magnetic: Already playing audio"
+                else:
+                    self.player_proc = self.player.playMp3(audio, vol)
+            else:
+                print "No ad to play for Magnetic switch"
 
 
     def internal_switch_callback(self, channel):
@@ -58,9 +111,18 @@ class LVService():
         Should be executed when an event from internal switch is detected
         """
         if self.player.input(channel):
-            print "internal ext switch callback"
+            print "Internal switch callback"
             self.player.toggleGreenLed()
-            self.refreshSchedule()
+            if self.audio_internal:
+                audio = os.path.basename(self.audio_internal[0]['filename'])
+                vol = self.audio_internal[0]['avolume']
+                self.player.toggleRedLed()
+                if self.player_proc:
+                    print "Internal Button: Already playing audio"
+                else:
+                    self.player_proc = self.player.playMp3(audio, vol)
+            else:
+                print "No ad to play for Internal Button"
 
 
     def tilt_switch_callback(self, channel):
@@ -70,8 +132,27 @@ class LVService():
         """
         if self.player.input(channel):
             print "tilt switch callback"
-            self.player.toggleRedLed()
-            self.player.playMp3(self.audiofile, volume=self.volume)
+            if self.audio_movement:
+                audio = os.path.basename(self.audio_movement[0]['filename'])
+                vol = self.audio_movement[0]['avolume']
+                self.player.toggleRedLed()
+                if self.player_proc:
+                    print "Already playing audio"
+                else:
+                    self.player_proc = self.player.playMp3(audio, vol)
+            else:
+                print "No ad to play for Tilt/Movement switch"
+
+
+    def stop_playback(self):
+        """
+        kill the server subprocess group
+        """
+
+        if self.player_proc:
+            print "\nKilling the player process: {}".format(self.player_proc.pid)
+            os.killpg(self.player_proc.pid, signal.SIGTERM)
+            self.player_proc = None
 
 
     def external_switch_callback(self, channel):
@@ -80,9 +161,15 @@ class LVService():
         Should be executed when an event from external switch is detected
         """
         if self.player.input(channel):
-            print "ext switch callback"
+            print "External switch callback"
             self.player.toggleGreenLed()
-            self.refreshSchedule()
+
+            if self.player_proc:
+                print "Stopping playback"
+                self.stop_playback()
+
+            print "refreshing schedule"
+            self.refresh_schedule()
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 import time
 import RPi.GPIO as GPIO
 import os
+import subprocess
 import signal # to handle Ctrl+C
 import sys
 
@@ -109,11 +110,12 @@ class Player():
 
 
     def playMp3(self, filename, volume=40):
-        try:
-           with open('%s/audio/%s' % (self.pwd, filename)): 
-               os.system("mpg321 -q -g {} {}/audio/{}".format(volume,
-                                                              self.pwd,
-                                                              filename))
-        except IOError:
-            print "Couldn't find audio file: ./audio/%s" % filename
+        player_proc = subprocess.Popen(
+            "nohup mpg321 -q -g {} {}/audio/{} &".format(volume,
+                                                         self.pwd,
+                                                         filename),
+                                         shell=True,
+                                         preexec_fn=os.setsid)
+        print "Player process: {} {}".format(player_proc.pid, player_proc)
+        return player_proc
 
