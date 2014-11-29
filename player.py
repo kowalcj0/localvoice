@@ -14,7 +14,7 @@ class Player():
                 EXTERNAL_SWITCH_CALLBACK,
                 TILT_SWITCH_CALLBACK,
                 PIN_IR_SWITCH=8,
-                PIN_INTERNAL_SWITCH=25,
+                PIN_INTERNAL_SWITCH=15,
                 PIN_EXTERNAL_SWITCH=13,
                 PIN_TILT_SWITCH=11,
                 PIN_LED_GREEN=18,
@@ -43,21 +43,35 @@ class Player():
         os.system("amixer -q cset numid=3 1")
         # hijack the Ctrl+C event and run teardown()
         signal.signal(signal.SIGINT, self.teardown)
+
         # setup the board type and clean the board config
         GPIO.setmode(GPIO.BOARD)
         GPIO.cleanup()
+        
         # configure inputs and outputs
+        GPIO.setup(self.PIN_IR_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.PIN_INTERNAL_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.PIN_EXTERNAL_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.PIN_TILT_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
         GPIO.setup(self.PIN_LED_GREEN, GPIO.OUT) # green led
         GPIO.setup(self.PIN_LED_RED, GPIO.OUT) # red led
-        GPIO.setup(self.PIN_TILT_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.PIN_EXT_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        # add an event listener and callback function for the ext switch
-        GPIO.add_event_detect(self.PIN_EXT_SWITCH, GPIO.RISING, bouncetime=500)
-        GPIO.add_event_callback(self.PIN_EXT_SWITCH, self.EXT_SWITCH_CALLBACK, bouncetime=500)
-        #GPIO.add_event_callback(self.PIN_EXT_SWITCH, self.extSwitchCallBack, bouncetime=200)
+
+        # add an event listener and callback function for the IR switch
+        GPIO.add_event_detect(self.PIN_IR_SWITCH, GPIO.RISING, bouncetime=500)
+        GPIO.add_event_callback(self.PIN_IR_SWITCH, self.IR_SWITCH_CALLBACK, bouncetime=500)
+
+        # add an event listener and callback function for the INTERNAL switch
+        GPIO.add_event_detect(self.PIN_INTERNAL_SWITCH, GPIO.RISING, bouncetime=500)
+        GPIO.add_event_callback(self.PIN_INTERNAL_SWITCH, self.INTERNAL_SWITCH_CALLBACK, bouncetime=500)
+        
+        # add an event listener and callback function for the EXTERNAL switch
+        GPIO.add_event_detect(self.PIN_EXTERNAL_SWITCH, GPIO.RISING, bouncetime=500)
+        GPIO.add_event_callback(self.PIN_EXTERNAL_SWITCH, self.EXTERNAL_SWITCH_CALLBACK, bouncetime=500)
+
         # add an event listener and callback function for the tilt switch
         GPIO.add_event_detect(self.PIN_TILT_SWITCH, GPIO.RISING, bouncetime=500)
         GPIO.add_event_callback(self.PIN_TILT_SWITCH, self.TILT_SWITCH_CALLBACK, bouncetime=500)
+
         #GPIO.add_event_callback(self.PIN_TILT_SWITCH, self.tiltSwitchCallBack, bouncetime=500)
         # turn on the LEDs for 1 seconds to indicated that player booted up
         self.toggleGreenLed()
@@ -80,15 +94,19 @@ class Player():
         GPIO.cleanup()
         # terminate the app
         sys.exit(0)
+
         
     def toggleGreenLed(self):
         GPIO.output(self.PIN_LED_GREEN, not GPIO.input(self.PIN_LED_GREEN))
 
+
     def toggleRedLed(self):
         GPIO.output(self.PIN_LED_RED, not GPIO.input(self.PIN_LED_RED))
 
+
     def input(self, channel):
         return GPIO.input(channel)
+
 
     def playMp3(self, filename, volume=40):
         try:
@@ -99,20 +117,3 @@ class Player():
         except IOError:
             print "Couldn't find audio file: ./audio/%s" % filename
 
-    @staticmethod
-    def tiltSwitchCallBack(channel):
-        if GPIO.input(channel):
-            #GPIO.output(self.PIN_LED_GREEN, not GPIO.input(self.PIN_LED_GREEN))
-            print "Tilt switch triggered", time.time()
-
-    @staticmethod
-    def extSwitchCallBack(channel):
-        if GPIO.input(channel):
-            #GPIO.output(self.PIN_LED_RED, not GPIO.input(self.PIN_LED_RED))
-            print "Ext Switch Pressed", time.time()
-
-
-if __name__ == "__main__":
-    p=Player(TILT_SWITCH_CALLBACK=Player.tiltSwitchCallBack,
-            EXT_SWITCH_CALLBACK=Player.extSwitchCallBack)
-    p.setup()
