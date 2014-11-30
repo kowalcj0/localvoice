@@ -4,8 +4,6 @@ from lv import LV
 from player import Player
 import os
 import signal
-import subprocess
-from pprint import pprint as pp
 import timeit
 
 
@@ -17,7 +15,7 @@ class LVService():
         # define for how many seconds movement trigger should do nothing
         self.movement_playback_timer = timeit.timeit()
         self.movement_playback_timer_threshold = 35
-        self.player_proc = None
+        self.player_processes = []
 
         if self.refresh_schedule():
             # setup the player using custom callback functions
@@ -71,11 +69,11 @@ class LVService():
                     audio = os.path.basename(self.audio_ir[0]['filename'])
                     vol = self.audio_ir[0]['avolume']
                     self.player.toggleRedLed()
-                    if self.player_proc:
+                    if self.player_processes:
                         print "IR: Already playing audio"
                     else:
                         self.movement_playback_timer = timeit.timeit()
-                        self.player_proc = self.player.playMp3(audio, vol)
+                        self.player_processes.append(self.player.playMp3(audio, vol))
                 else:
                     print "IR: sensor was triggered to quickly"
                     if ((self.movement_playback_timer - current_timer)*1000 <
@@ -97,10 +95,10 @@ class LVService():
                 audio = os.path.basename(self.audio_magnetic[0]['filename'])
                 vol = self.audio_magnetic[0]['avolume']
                 self.player.toggleRedLed()
-                if self.player_proc:
+                if self.player_processes:
                     print "Magnetic: Already playing audio"
                 else:
-                    self.player_proc = self.player.playMp3(audio, vol)
+                    self.player_processes.append(self.player.playMp3(audio, vol))
             else:
                 print "No ad to play for Magnetic switch"
 
@@ -117,10 +115,10 @@ class LVService():
                 audio = os.path.basename(self.audio_internal[0]['filename'])
                 vol = self.audio_internal[0]['avolume']
                 self.player.toggleRedLed()
-                if self.player_proc:
+                if self.player_processes:
                     print "Internal Button: Already playing audio"
                 else:
-                    self.player_proc = self.player.playMp3(audio, vol)
+                    self.player_processes.append(self.player.playMp3(audio, vol))
             else:
                 print "No ad to play for Internal Button"
 
@@ -136,10 +134,10 @@ class LVService():
                 audio = os.path.basename(self.audio_movement[0]['filename'])
                 vol = self.audio_movement[0]['avolume']
                 self.player.toggleRedLed()
-                if self.player_proc:
+                if self.player_processes:
                     print "Already playing audio"
                 else:
-                    self.player_proc = self.player.playMp3(audio, vol)
+                    self.player_processes.append(self.player.playMp3(audio, vol))
             else:
                 print "No ad to play for Tilt/Movement switch"
 
@@ -149,10 +147,12 @@ class LVService():
         kill the server subprocess group
         """
 
-        if self.player_proc:
-            print "\nKilling the player process: {}".format(self.player_proc.pid)
-            os.killpg(self.player_proc.pid, signal.SIGTERM)
-            self.player_proc = None
+        if self.player_processes:
+
+            for pid in self.player_processes:
+                print "\nKilling the player process: {}".format(pid)
+                os.killpg(pid.pid, signal.SIGTERM)
+            self.player_processes = []
 
 
     def external_switch_callback(self, channel):
@@ -164,7 +164,7 @@ class LVService():
             print "External switch callback"
             self.player.toggleGreenLed()
 
-            if self.player_proc:
+            if self.player_processes:
                 print "Stopping playback"
                 self.stop_playback()
 
