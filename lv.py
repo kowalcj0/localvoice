@@ -5,30 +5,23 @@ from urllib import urlencode
 from urllib2 import urlopen, URLError, HTTPError, Request
 import json
 
+
+STYPES = {
+        1: 'Vibration',
+        2: 'NFC',
+        3: 'IR',
+        4: 'Magnetic',
+        5: 'PushToCross',
+        6: 'Internal',
+        7: 'Broadcast',
+        8: 'Emergency'
+        }
+
+
 class LV:
     """
     Local Voice main class
-
-    List of advert triggerring types:
-    Movement = 1
-    NFC = 2
-    IR = 3
-    Magnetic = 4
-    PushToCross = 5
-    Button2 = 6
-    Broadcast = 7
-    Emergency = 8
     """
-    stypes = {
-            1: 'Movement',
-            2: 'NFC',
-            3: 'IR',
-            4: 'Magnetic',
-            5: 'PushToCross',
-            6: 'Button2',
-            7: 'Broadcast',
-            8: 'Emergency'
-            }
 
     def __init__(self,
                 SERVER="http://www.ht0004.mobi",
@@ -72,8 +65,8 @@ class LV:
             f = urlopen(url)
             print "Downloading " + url
             # Open our local file for writing
-            with open("audio/"+os.path.basename(url), "wb") as local_file:
-                local_file.write(f.read())
+            #with open("audio/"+os.path.basename(url), "wb") as local_file:
+                #local_file.write(f.read())
         #handle errors
         except HTTPError, e:
             print "HTTP Error:", e.code, url
@@ -94,7 +87,7 @@ class LV:
 
 
     def getDlUrls(self, json):
-        """Extacts all the audio file URLs
+        """Extracts all the audio file URLs
         Returns a list of the URLs to download"""
         urls=[]
         if json:
@@ -105,7 +98,7 @@ class LV:
 
     def confirmScheduleRetrieval(self):
         """Sends a POST request that confirms that schedule and all the audio
-        files were downloaded sucessfully. 
+        files were downloaded successfully. 
         Doesn't return anything.
         """
         values={}
@@ -114,7 +107,7 @@ class LV:
         try:
             req=Request(self.RETR_URL, data)
             resp=urlopen(req)
-            print "Send a retrieval confirnamtion to %s.\nServer response: '%s'\n" % (self.RETR_URL, resp.read())
+            print "Send a retrieval confirmation to %s.\nServer response: '%s'\n" % (self.RETR_URL, resp.read())
         #handle errors
         except HTTPError, e:
             print "HTTP Error:", e.code, req
@@ -139,7 +132,7 @@ class LV:
         result = []
         for ad in filter(lambda x: 'stype' in x and x['stype'] == stype,
                          json['schedule']):
-            print "Found ad for '{}' sensor type: {}".format(self.stypes[int(stype)],
+            print "Found ad for '{}' sensor type: {}".format(STYPES[int(stype)],
                                                              stype)
             result.append(ad)
         return result
@@ -159,22 +152,4 @@ class LV:
             print "HTTP Error:", e.code, self.RESET_2NULL_URL
         except URLError, e:
             print "URL Error:", e.reason, self.RESET_2NULL_URL
-            
 
-
-if __name__ == "__main__":
-    lv=LV(SERVER="http://www.ht0004.mobi", PID="P137960410446628")
-    s=lv.getSchedule()
-    while not s:
-        print "I've got nothing to do because I've received an empty schedule!"
-        lv.adminResetToNull()
-        s=lv.getSchedule()
-    if s:
-        print "Got a schedule containing: %d item(s)" % len(s['schedule'])
-        u=lv.getDlUrls(s)
-        h=lv.getHighestBid(s)
-        lv.confirmScheduleRetrieval()
-        print h
-        #print "List of audio URLs to download \n %s \n" % u
-        #if lv.dlAllFiles(u):
-            #lv.confirmScheduleRetrieval()

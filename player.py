@@ -10,31 +10,47 @@ import sys
 class Player():
 
     def __init__(self,
-                IR_SWITCH_CALLBACK,
-                INTERNAL_SWITCH_CALLBACK,
-                EXTERNAL_SWITCH_CALLBACK,
-                TILT_SWITCH_CALLBACK,
-                PIN_IR_SWITCH=8,
-                PIN_INTERNAL_SWITCH=15,
-                PIN_EXTERNAL_SWITCH=13,
-                PIN_TILT_SWITCH=11,
-                PIN_LED_GREEN=18,
-                PIN_LED_RED=16):
+                vibration_callback=None,
+                nfc_callback=None,
+                ir_callback=None,
+                magnetic_callback=None,
+                pushtocross_callback=None,
+                internal_callback=None,
+                broadcast_callback=None,
+                emergency_callback=None,
+                pin_vibration=11,
+                pin_nfc=None,
+                pin_ir=8,
+                pin_magnetic=None,
+                pin_pushtocross=13,
+                pin_internal=15,
+                pin_broadcast=None,
+                pin_emergency=None,
+                pin_led_green=18,
+                pin_led_red=16):
         """
         Sets the Player with default pinout if not provided
         """
-        self.IR_SWITCH_CALLBACK = IR_SWITCH_CALLBACK
-        self.INTERNAL_SWITCH_CALLBACK = INTERNAL_SWITCH_CALLBACK
-        self.EXTERNAL_SWITCH_CALLBACK = EXTERNAL_SWITCH_CALLBACK
-        self.TILT_SWITCH_CALLBACK = TILT_SWITCH_CALLBACK
+        self.vibration_callback = vibration_callback
+        self.nfc_callback = nfc_callback
+        self.ir_callback = ir_callback
+        self.magnetic_callback = magnetic_callback
+        self.pushtocross_callback = pushtocross_callback
+        self.internal_callback = internal_callback
+        self.broadcast_callback = broadcast_callback
+        self.emergency_callback = emergency_callback
 
-        self.PIN_IR_SWITCH = PIN_IR_SWITCH
-        self.PIN_INTERNAL_SWITCH = PIN_INTERNAL_SWITCH
-        self.PIN_EXTERNAL_SWITCH = PIN_EXTERNAL_SWITCH
-        self.PIN_TILT_SWITCH = PIN_TILT_SWITCH
+        self.pin_vibration = pin_vibration
+        self.pin_nfc = pin_nfc
+        self.pin_ir = pin_ir
+        self.pin_magnetic = pin_magnetic
+        self.pin_pushtocross = pin_pushtocross
+        self.pin_internal = pin_internal
+        self.pin_broadcast = pin_broadcast
+        self.pin_emergency = pin_emergency
         
-        self.PIN_LED_GREEN = PIN_LED_GREEN
-        self.PIN_LED_RED = PIN_LED_RED
+        self.pin_led_green = pin_led_green
+        self.pin_led_red = pin_led_red
 
         self.pwd=os.path.dirname(__file__)
 
@@ -50,30 +66,29 @@ class Player():
         GPIO.cleanup()
         
         # configure inputs and outputs
-        GPIO.setup(self.PIN_IR_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.PIN_INTERNAL_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.PIN_EXTERNAL_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.PIN_TILT_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-        GPIO.setup(self.PIN_LED_GREEN, GPIO.OUT) # green led
-        GPIO.setup(self.PIN_LED_RED, GPIO.OUT) # red led
-
-        # add an event listener and callback function for the IR switch
-        GPIO.add_event_detect(self.PIN_IR_SWITCH, GPIO.RISING, bouncetime=500)
-        GPIO.add_event_callback(self.PIN_IR_SWITCH, self.IR_SWITCH_CALLBACK, bouncetime=500)
-
-        # add an event listener and callback function for the INTERNAL switch
-        GPIO.add_event_detect(self.PIN_INTERNAL_SWITCH, GPIO.RISING, bouncetime=500)
-        GPIO.add_event_callback(self.PIN_INTERNAL_SWITCH, self.INTERNAL_SWITCH_CALLBACK, bouncetime=500)
-        
-        # add an event listener and callback function for the EXTERNAL switch
-        GPIO.add_event_detect(self.PIN_EXTERNAL_SWITCH, GPIO.RISING, bouncetime=500)
-        GPIO.add_event_callback(self.PIN_EXTERNAL_SWITCH, self.EXTERNAL_SWITCH_CALLBACK, bouncetime=500)
+        GPIO.setup(self.pin_vibration, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.pin_ir, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.pin_internal, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.pin_pushtocross, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+        GPIO.setup(self.pin_led_green, GPIO.OUT)
+        GPIO.setup(self.pin_led_red, GPIO.OUT)
 
         # add an event listener and callback function for the tilt switch
-        GPIO.add_event_detect(self.PIN_TILT_SWITCH, GPIO.RISING, bouncetime=500)
-        GPIO.add_event_callback(self.PIN_TILT_SWITCH, self.TILT_SWITCH_CALLBACK, bouncetime=500)
+        GPIO.add_event_detect(self.pin_vibration, GPIO.RISING, bouncetime=900)
+        GPIO.add_event_callback(self.pin_vibration, self.vibration_callback, bouncetime=900)
 
-        #GPIO.add_event_callback(self.PIN_TILT_SWITCH, self.tiltSwitchCallBack, bouncetime=500)
+        # add an event listener and callback function for the IR switch
+        GPIO.add_event_detect(self.pin_ir, GPIO.RISING, bouncetime=500)
+        GPIO.add_event_callback(self.pin_ir, self.ir_callback, bouncetime=500)
+
+        # add an event listener and callback function for the INTERNAL switch
+        GPIO.add_event_detect(self.pin_internal, GPIO.RISING, bouncetime=500)
+        GPIO.add_event_callback(self.pin_internal, self.internal_callback, bouncetime=500)
+        
+        # add an event listener and callback function for the EXTERNAL switch
+        GPIO.add_event_detect(self.pin_pushtocross, GPIO.RISING, bouncetime=500)
+        GPIO.add_event_callback(self.pin_pushtocross, self.pushtocross_callback, bouncetime=500)
+
         # turn on the LEDs for 1 seconds to indicated that player booted up
         self.toggleGreenLed()
         self.toggleRedLed()
@@ -89,8 +104,8 @@ class Player():
         Will close the app in a nice way.
         """
         # turn off the LEDs
-        GPIO.output(self.PIN_LED_GREEN, False) # turn the LED off
-        GPIO.output(self.PIN_LED_RED, False)
+        GPIO.output(self.pin_led_green, False) # turn the LED off
+        GPIO.output(self.pin_led_red, False)
         # cleant the board config
         GPIO.cleanup()
         # terminate the app
@@ -98,11 +113,11 @@ class Player():
 
         
     def toggleGreenLed(self):
-        GPIO.output(self.PIN_LED_GREEN, not GPIO.input(self.PIN_LED_GREEN))
+        GPIO.output(self.pin_led_green, not GPIO.input(self.pin_led_green))
 
 
     def toggleRedLed(self):
-        GPIO.output(self.PIN_LED_RED, not GPIO.input(self.PIN_LED_RED))
+        GPIO.output(self.pin_led_red, not GPIO.input(self.pin_led_red))
 
 
     def input(self, channel):
@@ -110,12 +125,12 @@ class Player():
 
 
     def playMp3(self, filename, volume=40):
-        player_proc = subprocess.Popen(
-            "nohup mpg321 -q -g {} {}/audio/{} &".format(volume,
-                                                         self.pwd,
-                                                         filename),
-                                         shell=True,
-                                         preexec_fn=os.setsid)
-        print "Player process: {} {}".format(player_proc.pid, player_proc)
+        proc_cmd = "nohup mpg321 -q -g {} {}/audio/{} &".format(volume,
+                                                               self.pwd,
+                                                               filename)
+        player_proc = subprocess.Popen(proc_cmd,
+                                       shell=True,
+                                       preexec_fn=os.setsid)
+        print "Player process: {}".format(player_proc.pid)
         return player_proc
 
