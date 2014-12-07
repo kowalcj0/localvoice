@@ -2,9 +2,8 @@
 
 import os
 from urllib import urlencode
-from urllib2 import urlopen, build_opener, URLError, HTTPError, Request
+from urllib2 import urlopen, URLError, HTTPError, Request
 import json
-import datetime
 
 class LV:
     """
@@ -20,6 +19,16 @@ class LV:
     Broadcast = 7
     Emergency = 8
     """
+    stypes = {
+            1: 'Movement',
+            2: 'NFC',
+            3: 'IR',
+            4: 'Magnetic',
+            5: 'PushToCross',
+            6: 'Button2',
+            7: 'Broadcast',
+            8: 'Emergency'
+            }
 
     def __init__(self,
                 SERVER="http://www.ht0004.mobi",
@@ -40,7 +49,6 @@ class LV:
         Returns the serialize JSON response as a dictionary.
         An empty one if something went wrong or schedule was empty."""
         try:
-            opener = build_opener()
             req = urlopen(self.SCHED_URL)
             if (req.getcode() != 200):
                 print "Something's wrong! Resp.code is %s" % req.getcode()
@@ -109,13 +117,12 @@ class LV:
             print "Send a retrieval confirnamtion to %s.\nServer response: '%s'\n" % (self.RETR_URL, resp.read())
         #handle errors
         except HTTPError, e:
-            print "HTTP Error:", e.code, url
+            print "HTTP Error:", e.code, req
         except URLError, e:
-            print "URL Error:", e.reason, url
+            print "URL Error:", e.reason, req
 
 
     def getHighestBid(self, json):
-        current_hour=datetime.datetime.utcnow().hour
         if json:
             for ad in json['schedule']:
                 if ad['priority'] == 1:
@@ -124,15 +131,16 @@ class LV:
            return ()
 
     
-    def get_adverts(self, json, type):
+    def get_adverts(self, json, stype):
         """
         Return adverts of given type, and return None if no advert was found.
         :param type: an type of the sensor (should be an int in quoutes)
         """
-        print "'{}'".format(type)
         result = []
-        for ad in filter(lambda x: 'stype' in x and x['stype'] == type,
+        for ad in filter(lambda x: 'stype' in x and x['stype'] == stype,
                          json['schedule']):
+            print "Found ad for '{}' sensor type: {}".format(self.stypes[int(stype)],
+                                                             stype)
             result.append(ad)
         return result
         
@@ -143,7 +151,6 @@ class LV:
         """
         try:
             print "Resetting schedule to null"
-            opener = build_opener()
             req = urlopen(self.RESET_2NULL_URL)
             if (req.getcode() != 200):
                 print "Something's wrong! Resp.code is %s" % req.getcode()

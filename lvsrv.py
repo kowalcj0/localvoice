@@ -5,6 +5,7 @@ from player import Player
 import os
 import signal
 import timeit
+import time
 
 
 class LVService():
@@ -14,10 +15,23 @@ class LVService():
         self.lv.adminResetToNull()
         # define for how many seconds movement trigger should do nothing
         self.movement_playback_timer = timeit.timeit()
-        self.movement_playback_timer_threshold = 35
+        self.movement_playback_timer_threshold = 120
         self.player_processes = []
 
-        if self.refresh_schedule():
+        retry_counter = 0
+        retry_number = 5
+        retry_every_s = 10  # in seconds
+
+        self.refresh_schedule()
+
+        while not self.schedule and (retry_counter < retry_number):
+            retry_counter += 1
+            print ("No schedule for me - #{} Retrying in {}s "
+                  ).format(retry_counter, retry_every_s)
+            time.sleep(retry_every_s)
+            self.refresh_schedule()
+
+        if self.schedule:
             # setup the player using custom callback functions
             self.player=Player(IR_SWITCH_CALLBACK=self.ir_switch_callback,
                                INTERNAL_SWITCH_CALLBACK=self.internal_switch_callback,
@@ -40,7 +54,7 @@ class LVService():
             if self.lv.dlAllFiles(self.urls):
                 self.lv.confirmScheduleRetrieval()
 
-                self.audio_movement = self.lv.get_adverts(self.schedule, u'5')
+                self.audio_movement = self.lv.get_adverts(self.schedule, u'1')
                 self.audio_nfc = self.lv.get_adverts(self.schedule, u'2')
                 self.audio_ir = self.lv.get_adverts(self.schedule, u'3')
                 self.audio_magnetic = self.lv.get_adverts(self.schedule, u'4')
@@ -51,7 +65,6 @@ class LVService():
 
                 return True
         else:
-            print "I've got nothing to do because I've received an empty schedule!"
             return False
 
 
