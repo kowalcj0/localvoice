@@ -119,15 +119,16 @@ class LVService():
 
     def pushtocross_callback(self, channel):
         print "Push to cross callback"
-        if self.player.input(channel):
-            self.player.toggleGreenLed()
+        self.regular_playback(channel, self.audio_pushtocross)
+        #if self.player.input(channel):
+            #self.player.toggleGreenLed()
 
-            if self.player_processes:
-                print "Stopping playback"
-                self.stop_playback()
+            #if self.player_processes:
+                #print "Stopping playback"
+                #self.stop_playback()
 
-            print "refreshing schedule"
-            self.refresh_schedule()
+            #print "refreshing schedule"
+            #self.refresh_schedule()
 
 
     def internal_callback(self, channel):
